@@ -1,3 +1,4 @@
+
 #ifndef CATEGORY_HPP
 #define CATEGORY_HPP
 
@@ -40,11 +41,14 @@ public:
     const std::string& getImageUrl() const { return image_url_; }
     void setImageUrl(const std::string& image_url) { image_url_ = image_url; }
 
+    std::uint32_t getProductCount() const {return product_count_; }
+    void setProductCount(std::uint32_t count) {product_count_ = count;}
 private:
     std::uint32_t id_ = 0;
     std::string name_;
     std::optional<std::uint32_t> parent_id_;
     std::string image_url_;
+    std::uint32_t product_count_ = 0; 
 };
 
 #endif // CATEGORY_HPP

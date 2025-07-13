@@ -38,7 +38,13 @@ std::vector<Category> CategoryRepositoryJson::getLeafSubcategories(std::size_t o
             parentId,
             item["image"].get<std::string>()
         );
+
         cat.setId(item["id"].get<std::uint32_t>());
+
+        if (item.contains("product_count") && item["product_count"].is_number()) {
+            cat.setProductCount(item["product_count"].get<std::uint32_t>());
+        }
+
         result.push_back(cat);
     }
 
@@ -54,11 +60,11 @@ std::vector<Category> CategoryRepositoryJson::getTopLevelCategories() {
     json j;
     file >> j;
 
-    if (!j.contains("data") || !j["data"].is_array()) {
-        throw std::runtime_error("Fichier JSON invalide : clé 'data' manquante ou invalide");
+    if (!j.contains("categories") || !j["categories"].is_array()) {
+        throw std::runtime_error("Fichier JSON invalide : key 'categories' manquante ou invalide");
     }
 
-    const auto& all = j["data"];
+    const auto& all = j["categories"];
     std::vector<Category> result;
 
     for (const auto& item : all) {

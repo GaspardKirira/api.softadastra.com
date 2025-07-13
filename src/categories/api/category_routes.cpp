@@ -1,118 +1,83 @@
-#include "categories/api/category_routes.hpp"
-#include "categories/services/CategoryRepositoryJson.hpp"
-#include <nlohmann/json.hpp>
+#include "categories/services/CategoryCache.hpp"
+#include <crow.h>
+#include <crow/middlewares/cors.h>
 #include <cstdlib>
+#include <memory>
+#include <mutex>
 
-using json = nlohmann::json;
+// 🔸 Une instance de cache par fichier
+static std::unique_ptr<CategoryCache> g_leafCache;
+static std::unique_ptr<CategoryCache> g_topCache;
+static std::unique_ptr<CategoryCache> g_allCache;
 
 void registerCategoryRoutes(crow::App<crow::CORSHandler>& app) {
 
-    auto serializeCategory = [](const Category& c) -> json {
-        json item = {
-            {"id", c.getId()},
-            {"name", c.getName()},
-            {"image", c.getImageUrl()},
-        };
-        item["parent_id"] = c.getParentId().has_value() ? json(c.getParentId().value()) : nullptr;
-        return item;
-    };
-
-    CROW_ROUTE(app, "/api")
-    ([] {
-        json doc = {
-            {"status", "Softadastra API en ligne 🚀"},
-            {"endpoints", {
-                {"GET /api/products/all", "Liste de tous les produits"},
-                {"GET /api/categories/all", "Toutes les catégories"},
-                {"GET /api/categories/leaf", "Sous-catégories (feuilles uniquement)"},
-                {"GET /api/categories/top", "Catégories racines (top-level)"}
-            }}
-        };
-
-        crow::response res(doc.dump(2));
-        res.set_header("Content-Type", "application/json");
-        return res;
-    });
-
-
     // 🔹 Feuilles
     CROW_ROUTE(app, "/api/categories/leaf")
-    ([&serializeCategory]() {
+    ([] {
+        const char* path = std::getenv("CATEGORY_JSON_PATH");
+        if (!path) return crow::response(500, "CATEGORY_JSON_PATH non défini");
+
+        static std::once_flag flagLeaf;
+        std::call_once(flagLeaf, [&](){
+            g_leafCache = std::make_unique<CategoryCache>(path);
+        });
+
         try {
-            const char* path = std::getenv("CATEGORY_JSON_PATH");
-            if (!path) {
-                return crow::response(500, "CATEGORY_JSON_PATH non défini dans .env");
-            }
-
-            CategoryRepositoryJson repo(path);
-            auto categories = repo.getLeafSubcategories(0, 20);
-
-            json responseJson;
-            responseJson["categories"] = json::array();
-            for (const auto& c : categories) {
-                responseJson["categories"].push_back(serializeCategory(c));
-            }
-
-            crow::response res(responseJson.dump());
-            res.set_header("Content-Type", "application/json");
-            return res;
-
+            return crow::response(g_leafCache->getLeafCategoriesJson());
         } catch (const std::exception& e) {
             return crow::response(500, std::string("Erreur serveur : ") + e.what());
         }
     });
 
-    // 🔹 Top Level
+    // 🔹 Top-level (racines)
     CROW_ROUTE(app, "/api/categories/top")
-    ([&serializeCategory]() {
+    ([] {
+        const char* path = std::getenv("CATEGORY_JSON_PATH_TOP_LEVEL");
+        if (!path) return crow::response(500, "CATEGORY_JSON_PATH_TOP_LEVEL non défini");
+
+        static std::once_flag flagTop;
+        std::call_once(flagTop, [&](){
+            g_topCache = std::make_unique<CategoryCache>(path);
+        });
+
         try {
-            const char* path = std::getenv("CATEGORY_JSON_PATH_TOP_LEVEL");
-            if (!path) {
-                return crow::response(500, "CATEGORY_JSON_PATH_TOP_LEVEL non défini dans .env");
-            }
-
-            CategoryRepositoryJson repo(path);
-            auto categories = repo.getTopLevelCategories();
-
-            json responseJson;
-            responseJson["categories"] = json::array();
-            for (const auto& c : categories) {
-                responseJson["categories"].push_back(serializeCategory(c));
-            }
-
-            crow::response res(responseJson.dump());
-            res.set_header("Content-Type", "application/json");
-            return res;
-
+            return crow::response(g_topCache->getTopLevelCategoriesJson());
         } catch (const std::exception& e) {
             return crow::response(500, std::string("Erreur serveur : ") + e.what());
         }
     });
 
-    // 🔹 All
+    // 🔹 Toutes
     CROW_ROUTE(app, "/api/categories/all")
-    ([&serializeCategory]() {
+    ([] {
+        const char* path = std::getenv("CATEGORY_JSON_PATH_ALL");
+        if (!path) return crow::response(500, "CATEGORY_JSON_PATH_ALL non défini");
+
+        static std::once_flag flagAll;
+        std::call_once(flagAll, [&](){
+            g_allCache = std::make_unique<CategoryCache>(path);
+        });
+
         try {
-            const char* path = std::getenv("CATEGORY_JSON_PATH_ALL");
-            if (!path) {
-                return crow::response(500, "CATEGORY_JSON_PATH_ALL non défini dans .env");
-            }
-
-            CategoryRepositoryJson repo(path);
-            auto categories = repo.getAllCategories();
-
-            json responseJson;
-            responseJson["categories"] = json::array();
-            for (const auto& c : categories) {
-                responseJson["categories"].push_back(serializeCategory(c));
-            }
-
-            crow::response res(responseJson.dump());
-            res.set_header("Content-Type", "application/json");
-            return res;
-
+            return crow::response(g_allCache->getAllCategoriesJson());
         } catch (const std::exception& e) {
             return crow::response(500, std::string("Erreur serveur : ") + e.what());
+        }
+    });
+
+    // 🔄 Rechargement manuel (utile après changement fichier)
+    CROW_ROUTE(app, "/api/categories/reload")
+    .methods("POST"_method)
+    ([] {
+        try {
+            if (g_leafCache) g_leafCache->reload();
+            if (g_topCache) g_topCache->reload();
+            if (g_allCache) g_allCache->reload();
+            return crow::response(200, "Caches rechargés avec succès");
+        } catch (const std::exception& e) {
+            return crow::response(500, std::string("Erreur lors du rechargement : ") + e.what());
         }
     });
 }
+

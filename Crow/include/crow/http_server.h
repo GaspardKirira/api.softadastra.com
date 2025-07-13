@@ -43,7 +43,7 @@ namespace crow // NOTE: Already documented in "crow/app.h"
     {
     public:
         Server(Handler* handler, std::string bindaddr, uint16_t port, std::string server_name = std::string("Crow/") + VERSION, std::tuple<Middlewares...>* middlewares = nullptr, uint16_t concurrency = 1, uint8_t timeout = 5, typename Adaptor::context* adaptor_ctx = nullptr):
-          acceptor_(io_service_, tcp::endpoint(asio::ip::address::from_string(bindaddr), port)),
+ acceptor_(io_service_, tcp::endpoint(asio::ip::make_address(bindaddr), port)),
           signals_(io_service_),
           tick_timer_(io_service_),
           handler_(handler),
@@ -249,7 +249,7 @@ namespace crow // NOTE: Already documented in "crow/app.h"
                   [this, p, &is, service_idx](error_code ec) {
                       if (!ec)
                       {
-                          is.post(
+                      asio::post(
                             [p] {
                                 p->start();
                             });

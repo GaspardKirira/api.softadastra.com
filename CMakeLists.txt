@@ -1,5 +1,4 @@
-# Ajout manuel d'ASIO standalone
-include_directories(/opt/asio/asio/include)
+
 
 cmake_minimum_required(VERSION 3.14)
 
@@ -11,6 +10,23 @@ project(Softadastra
     LANGUAGES CXX
     DESCRIPTION "Softadastra C++ backend project"
 )
+
+
+# ────────────────────────────────────────────────────────────────
+# 🔍 External Dependencies
+# ────────────────────────────────────────────────────────────────
+find_package(OpenSSL REQUIRED)
+find_package(SQLite3 REQUIRED)
+find_package(Threads REQUIRED)
+
+# ✅ Ajout propre d'ASIO standalone
+set(ASIO_INCLUDE_DIR "/opt/asio/asio/include")
+if(EXISTS ${ASIO_INCLUDE_DIR})
+    message(STATUS "✅ ASIO standalone found at: ${ASIO_INCLUDE_DIR}")
+    include_directories(${ASIO_INCLUDE_DIR})
+else()
+    message(FATAL_ERROR "❌ ASIO include path not found at: ${ASIO_INCLUDE_DIR}")
+endif()
 
 # ────────────────────────────────────────────────────────────────
 # 🧱 C++ Standard and Compiler Flags
@@ -169,3 +185,5 @@ endif()
 # ────────────────────────────────────────────────────────────────
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 install(DIRECTORY include/ DESTINATION include)
+
+

@@ -88,14 +88,15 @@ namespace crow // NOTE: Already documented in "crow/app.h"
         template<typename CompletionHandler>
         void post(CompletionHandler handler)
         {
-            io_service->post(handler);
+asio::post(*io_service, handler);
         }
 
         /// Send data to whoever made this request with a completion handler.
         template<typename CompletionHandler>
         void dispatch(CompletionHandler handler)
         {
-            io_service->dispatch(handler);
+asio::dispatch(*io_service, handler);
+
         }
     };
 } // namespace crow
