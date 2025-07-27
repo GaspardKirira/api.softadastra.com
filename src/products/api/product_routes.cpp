@@ -16,38 +16,20 @@ void registerProductRoutes(crow::App<crow::CORSHandler>& app) {
         throw std::runtime_error("❌ PRODUCT_JSON_PATH non défini !");
     }
 
-    // ✅ Initialisation du cache dès l'enregistrement des routes
     std::call_once(init_flag, [&]() {
         g_productCache = std::make_unique<ProductCache>(path);
-        g_productCache->getJsonResponse(); // charge dès le démarrage
+        g_productCache->getJsonResponse(); 
         std::cout << "✅ [ProductRoutes] Cache produit initialisé.\n";
     });
 
-    // 🟢 Mini documentation des routes produits
     CROW_ROUTE(app, "/api/products")
     ([] {
         nlohmann::json doc;
         doc["endpoints"] = {
-            {
-                {"method", "GET"},
-                {"path", "/api/products"},
-                {"description", "📘 Liste des routes produits (documentation rapide)"}
-            },
-            {
-                {"method", "GET"},
-                {"path", "/api/products/all"},
-                {"description", "📦 Récupérer tous les produits depuis le cache"}
-            },
-            {
-                {"method", "POST"},
-                {"path", "/api/products/reload"},
-                {"description", "🔁 Recharger les produits depuis le fichier source JSON"}
-            },
-            {
-                {"method", "GET"},
-                {"path", "/api/products/status"},
-                {"description", "📊 État du cache (nombre de produits, taille JSON)"}
-            }
+            {{"method", "GET"}, {"path", "/api/products"}, {"description", "📘 Mini doc des routes produits"}},
+            {{"method", "GET"}, {"path", "/api/products/all"}, {"description", "📦 Tous les produits depuis le cache"}},
+            {{"method", "POST"}, {"path", "/api/products/reload"}, {"description", "🔁 Recharge les produits"}},
+            {{"method", "GET"}, {"path", "/api/products/status"}, {"description", "📊 Statut du cache"}}
         };
 
         crow::response res(doc.dump(2));
@@ -55,7 +37,6 @@ void registerProductRoutes(crow::App<crow::CORSHandler>& app) {
         return res;
     });
 
-    // 📦 Produits : JSON complet depuis le cache
     CROW_ROUTE(app, "/api/products/all")
     ([] {
         try {
@@ -64,13 +45,14 @@ void registerProductRoutes(crow::App<crow::CORSHandler>& app) {
 
             crow::response res(responseStr);
             res.set_header("Content-Type", "application/json");
+            res.set_header("Cache-Control", "public, max-age=60"); // 🟢 Header ajouté ici
             return res;
         } catch (const std::exception& e) {
             return crow::response(500, std::string("Erreur : ") + e.what());
         }
     });
 
-    // 🔁 Rechargement du cache
+    // 🔁 Recharge produits
     CROW_ROUTE(app, "/api/products/reload")
     .methods("POST"_method)
     ([] {
@@ -87,7 +69,7 @@ void registerProductRoutes(crow::App<crow::CORSHandler>& app) {
         }
     });
 
-    // 📊 Statistiques du cache
+    // 📊 Status cache
     CROW_ROUTE(app, "/api/products/status")
     ([] {
         if (!g_productCache) {
@@ -107,6 +89,7 @@ void registerProductRoutes(crow::App<crow::CORSHandler>& app) {
 
             crow::response res(status.dump(2));
             res.set_header("Content-Type", "application/json");
+            res.set_header("Cache-Control", "public, max-age=30"); // ⚠️ Status moins long
             return res;
         } catch (const std::exception& e) {
             return crow::response(500, std::string("Erreur lors du diagnostic du cache : ") + e.what());

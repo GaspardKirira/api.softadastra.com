@@ -14,6 +14,10 @@ void CategoryCache::loadCategories() {
     auto topLevelCats = repo.getTopLevelCategories();
     auto allCats = repo.getAllCategories();
 
+    leafCount = leafCats.size();
+    topCount = topLevelCats.size();
+    allCount = allCats.size();
+
     auto serialize = [](const Category& c) -> json {
         json item = {
             {"id", c.getId()},
@@ -27,17 +31,20 @@ void CategoryCache::loadCategories() {
 
     json leafJsonObj;
     leafJsonObj["categories"] = json::array();
-    for (const auto& c : leafCats) leafJsonObj["categories"].push_back(serialize(c));
+    for (const auto& c : leafCats)
+        leafJsonObj["categories"].push_back(serialize(c));
     leafJson = leafJsonObj.dump();
 
     json topJsonObj;
     topJsonObj["categories"] = json::array();
-    for (const auto& c : topLevelCats) topJsonObj["categories"].push_back(serialize(c));
+    for (const auto& c : topLevelCats)
+        topJsonObj["categories"].push_back(serialize(c));
     topLevelJson = topJsonObj.dump();
 
     json allJsonObj;
     allJsonObj["categories"] = json::array();
-    for (const auto& c : allCats) allJsonObj["categories"].push_back(serialize(c));
+    for (const auto& c : allCats)
+        allJsonObj["categories"].push_back(serialize(c));
     allJson = allJsonObj.dump();
 
     isLoaded = true;
@@ -66,3 +73,15 @@ void CategoryCache::reload() {
     loadCategories();
 }
 
+// ✅ Getters des compteurs
+size_t CategoryCache::getLeafCount() const {
+    return leafCount;
+}
+
+size_t CategoryCache::getTopLevelCount() const {
+    return topCount;
+}
+
+size_t CategoryCache::getAllCount() const {
+    return allCount;
+}
