@@ -1,6 +1,10 @@
 #include "products/services/ProductCache.hpp"
 #include "products/services/ProductService.hpp"
 #include <nlohmann/json.hpp>
+#include <fstream>
+#include <iostream>
+#include <chrono>
+#include <filesystem>
 
 using json = nlohmann::json;
 
@@ -8,10 +12,17 @@ ProductCache::ProductCache(const std::string& path)
     : jsonFilePath(path), isLoaded(false) {}
 
 std::string ProductCache::getJsonResponse() {
+    auto start = std::chrono::steady_clock::now();
+
     std::lock_guard<std::mutex> lock(mutex);
     if (!isLoaded) {
         loadProducts();
     }
+
+    auto end = std::chrono::steady_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "⏱ getJsonResponse() : " << ms << "ms\n";
+
     return cachedJson;
 }
 
@@ -21,6 +32,13 @@ void ProductCache::reload() {
 }
 
 void ProductCache::loadProducts() {
+    if (loadFromCacheFile()) {
+        std::cout << "✅ Cache chargé depuis le fichier `.cache`\n";
+        isLoaded = true;
+        return;
+    }
+
+    std::cout << "♻️ Rechargement complet depuis le JSON original...\n";
     ProductService service(jsonFilePath);
     auto products = service.getAllProducts();
 
@@ -44,5 +62,31 @@ void ProductCache::loadProducts() {
 
     cachedJson = response.dump();
     isLoaded = true;
+
+    saveToCacheFile();
 }
 
+bool ProductCache::loadFromCacheFile() {
+    const std::string cachePath = "products.cache";
+
+    if (!std::filesystem::exists(cachePath)) {
+        return false;
+    }
+
+    std::ifstream cacheFile(cachePath);
+    if (!cacheFile.is_open()) return false;
+
+    cachedJson.assign((std::istreambuf_iterator<char>(cacheFile)),
+                       std::istreambuf_iterator<char>());
+
+    return !cachedJson.empty();
+}
+
+void ProductCache::saveToCacheFile() {
+    const std::string cachePath = "products.cache";
+    std::ofstream out(cachePath);
+    if (out.is_open()) {
+        out << cachedJson;
+        std::cout << "📝 Cache sauvegardé dans `products.cache`\n";
+    }
+}

@@ -5,6 +5,7 @@
 
 class EnvLoader {
 public:
+    
     static void load(const std::string &filename);
 };
 

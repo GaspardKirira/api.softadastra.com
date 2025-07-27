@@ -1,23 +1,20 @@
 #ifndef PRODUCT_CACHE_HPP
 #define PRODUCT_CACHE_HPP
 
-#include "products/models/Product.hpp"
 #include <string>
-#include <vector>
 #include <mutex>
 
 class ProductCache {
 public:
     explicit ProductCache(const std::string& jsonPath);
 
-    // Retourne la réponse JSON pré-calculée (thread-safe)
-    std::string getJsonResponse();
-
-    // Force le rechargement des produits (thread-safe)
-    void reload();
+    std::string getJsonResponse(); // JSON prêt à servir
+    void reload();                 // Recharge et régénère le cache
 
 private:
-    void loadProducts();
+    void loadProducts();          // Recharge depuis JSON source
+    void saveToCacheFile();       // Sauvegarde vers .cache
+    bool loadFromCacheFile();     // Charge depuis .cache si existant
 
     std::string jsonFilePath;
     std::string cachedJson;
@@ -26,4 +23,3 @@ private:
 };
 
 #endif // PRODUCT_CACHE_HPP
-

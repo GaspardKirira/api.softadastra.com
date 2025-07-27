@@ -21,7 +21,6 @@ std::vector<Product> ProductService::getAllProducts() {
     const auto& items = j["data"];
 
     for (const auto& item : items) {
-        // 🔒 Validation obligatoire
         if (!item.contains("id") || !item["id"].is_number_unsigned()) {
             throw std::runtime_error("Produit sans ID trouvé dans le fichier JSON : " + jsonFilePath);
         }
@@ -53,7 +52,6 @@ std::vector<Product> ProductService::getAllProducts() {
             throw std::runtime_error("Produit sans colors trouvé dans le fichier JSON : " + jsonFilePath);
         }
 
-        // ✅ Création directe du produit
         Product p(
             item["title"].get<std::string>(),
             item["image_url"].get<std::string>(),
@@ -68,7 +66,7 @@ std::vector<Product> ProductService::getAllProducts() {
 
         p.setId(item["id"].get<uint32_t>());
 
-        products.push_back(std::move(p)); // 👈 Move pour éviter copie inutile
+        products.push_back(std::move(p)); 
     }
 
     return products;

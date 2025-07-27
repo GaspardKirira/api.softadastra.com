@@ -2,6 +2,8 @@
 
 cmake_minimum_required(VERSION 3.14)
 
+option(ENABLE_CATCH2 "Build Catch2 tests (disable in production)" ON)
+
 # ────────────────────────────────────────────────────────────────
 # 🛠️  Project Metadata
 # ────────────────────────────────────────────────────────────────
@@ -125,14 +127,18 @@ FetchContent_MakeAvailable(nlohmann_json)
 # 🧩 Site officiel : https://github.com/catchorg/Catch2
 # 📌 Avantage : Compatible C++17, simple, header-only
 # ────────────────────────────────────────────────────────────────
-FetchContent_Declare(
-    catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.5.4
-    GIT_SHALLOW TRUE
-)
-
-FetchContent_MakeAvailable(catch2)
+if(ENABLE_CATCH2)
+    message(STATUS "✅ Catch2 activé (tests unitaires)")
+    FetchContent_Declare(
+        catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.5.4
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(catch2)
+else()
+    message(STATUS "🚫 Catch2 désactivé (production)")
+endif()
 
 # GoogleTest (optional)
 option(BUILD_TESTS "Enable unit tests" ON)
